@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fake & Real News Detector</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 700px;
+      width: 100%;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    }
+
+    h1 {
+      color: #ffffff;
+      font-size: 2rem;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+
+    textarea {
+      width: 100%;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      font-size: 1rem;
+      resize: vertical;
+      min-height: 150px;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea::placeholder { color: rgba(255,255,255,0.35); }
+    textarea:focus { border-color: rgba(255,255,255,0.4); }
+
+    button {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.9; }
+
+    .result-box {
+      margin-top: 28px;
+      padding: 24px;
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .result-fake {
+      background: rgba(255, 75, 75, 0.15);
+      border: 1px solid rgba(255, 75, 75, 0.4);
+    }
+
+    .result-real {
+      background: rgba(75, 255, 150, 0.15);
+      border: 1px solid rgba(75, 255, 150, 0.4);
+    }
+
+    .result-label {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .result-fake .result-label { color: #ff6b6b; }
+    .result-real .result-label { color: #6bffb8; }
+
+    .result-confidence {
+      color: rgba(255,255,255,0.7);
+      font-size: 1rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .badge-fake { background: rgba(255,75,75,0.25); color: #ff6b6b; }
+    .badge-real { background: rgba(75,255,150,0.25); color: #6bffb8; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔍 News Detector</h1>
+    <p class="subtitle">Paste any news headline or article to check if it's real or fake</p>
+
+    <form method="POST">
+      <textarea name="news" placeholder="Paste your news headline or article here..." required>{{ news_input }}</textarea>
+      <button type="submit">Analyze News</button>
+    </form>
+
+    {% if result %}
+    <div class="result-box result-{{ result | lower }}">
+      <div class="badge badge-{{ result | lower }}">AI PREDICTION</div>
+      <div class="result-label">
+        {% if result == "FAKE" %}❌ FAKE NEWS{% else %}✅ REAL NEWS{% endif %}
+      </div>
+      <div class="result-confidence">Confidence: <strong>{{ confidence }}%</strong></div>
+    </div>
+    {% endif %}
+  </div>
+</body>
+</html>
