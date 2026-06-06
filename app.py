@@ -3,9 +3,11 @@ import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+import os
 
 app = Flask(__name__)
 
+# Train model at startup
 print("Loading and training model...")
 fake = pd.read_csv("Fake.csv")
 real = pd.read_csv("True.csv")
@@ -47,4 +49,5 @@ def index():
     return render_template("index.html", result=result, confidence=confidence, news_input=news_input)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
