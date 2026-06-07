@@ -6,22 +6,22 @@ import joblib
 
 print("Loading data...")
 
-data = pd.read_csv("WELFake_Dataset.csv")
+fake = pd.read_csv("Fake.csv")
+real = pd.read_csv("True.csv")
+
+fake["label"] = 0
+real["label"] = 1
+
+data = pd.concat([fake, real], ignore_index=True)
 data = data.dropna()
+data = data.sample(frac=1, random_state=42).reset_index(drop=True)
 data["content"] = data["title"] + " " + data["text"]
-data = data[["content", "label"]]
-
-# Fix swapped labels
-data["label"] = data["label"].apply(lambda x: 1 if x == 0 else 0)
-
-print(f"Total articles: {len(data)}")
-print(f"Fake: {len(data[data.label==0])} | Real: {len(data[data.label==1])}")
 
 X = data["content"]
 y = data["label"]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-vectorizer = TfidfVectorizer(max_features=10000, stop_words="english")
+vectorizer = TfidfVectorizer(max_features=5000, stop_words="english")
 X_train_vec = vectorizer.fit_transform(X_train)
 
 model = LogisticRegression(max_iter=1000)
