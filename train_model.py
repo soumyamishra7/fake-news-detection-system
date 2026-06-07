@@ -6,16 +6,13 @@ import joblib
 
 print("Loading data...")
 
-# Use ONLY the neutral WELFake dataset
 data = pd.read_csv("WELFake_Dataset.csv")
-
-print("Columns:", data.columns.tolist())
-print("Sample:\n", data.head(2))
-
-# Clean the data
 data = data.dropna()
 data["content"] = data["title"] + " " + data["text"]
 data = data[["content", "label"]]
+
+# Fix swapped labels
+data["label"] = data["label"].apply(lambda x: 1 if x == 0 else 0)
 
 print(f"Total articles: {len(data)}")
 print(f"Fake: {len(data[data.label==0])} | Real: {len(data[data.label==1])}")
