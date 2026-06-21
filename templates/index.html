@@ -54,10 +54,21 @@
       min-height: 150px;
       outline: none;
       font-family: inherit;
+      transition: border-color 0.2s, background 0.2s;
     }
 
     textarea::placeholder { color: rgba(255,255,255,0.35); }
-    textarea:focus { border-color: rgba(255,255,255,0.4); }
+    textarea:focus {
+      border-color: rgba(102,126,234,0.6);
+      background: rgba(255,255,255,0.1);
+    }
+
+    .char-count {
+      text-align: right;
+      color: rgba(255,255,255,0.3);
+      font-size: 0.75rem;
+      margin-top: 6px;
+    }
 
     button {
       width: 100%;
@@ -70,16 +81,41 @@
       border: none;
       border-radius: 12px;
       cursor: pointer;
-      transition: opacity 0.2s;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
 
     button:hover { opacity: 0.9; }
+    button:active { transform: scale(0.98); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     .result-box {
       margin-top: 28px;
       padding: 24px;
       border-radius: 14px;
       text-align: center;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
     }
 
     .result-fake {
@@ -92,6 +128,11 @@
       border: 1px solid rgba(75, 255, 150, 0.4);
     }
 
+    .result-uncertain {
+      background: rgba(255, 200, 60, 0.15);
+      border: 1px solid rgba(255, 200, 60, 0.45);
+    }
+
     .result-label {
       font-size: 2rem;
       font-weight: 700;
@@ -100,10 +141,12 @@
 
     .result-fake .result-label { color: #ff6b6b; }
     .result-real .result-label { color: #6bffb8; }
+    .result-uncertain .result-label { color: #ffd166; }
 
     .result-confidence {
       color: rgba(255,255,255,0.7);
       font-size: 1rem;
+      margin-bottom: 16px;
     }
 
     .badge {
@@ -117,6 +160,62 @@
 
     .badge-fake { background: rgba(255,75,75,0.25); color: #ff6b6b; }
     .badge-real { background: rgba(75,255,150,0.25); color: #6bffb8; }
+    .badge-uncertain { background: rgba(255,200,60,0.25); color: #ffd166; }
+
+    /* Confidence meter */
+    .meter-track {
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 0 auto 16px auto;
+      max-width: 400px;
+    }
+
+    .meter-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 6px;
+      transition: width 1s ease;
+    }
+
+    .meter-fake { background: linear-gradient(90deg, #ff6b6b, #ff4b4b); }
+    .meter-real { background: linear-gradient(90deg, #6bffb8, #2ecc71); }
+    .meter-uncertain { background: linear-gradient(90deg, #ffe066, #ffc83c); }
+
+    /* Keyword chips */
+    .keywords-label {
+      color: rgba(255,255,255,0.5);
+      font-size: 0.8rem;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .keywords-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .keyword-chip {
+      padding: 5px 12px;
+      border-radius: 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      opacity: 0;
+      animation: chipIn 0.3s ease forwards;
+    }
+
+    @keyframes chipIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .chip-fake { background: rgba(255,75,75,0.2); color: #ff8a8a; border: 1px solid rgba(255,75,75,0.3); }
+    .chip-real { background: rgba(75,255,150,0.2); color: #8affc4; border: 1px solid rgba(75,255,150,0.3); }
   </style>
 </head>
 <body>
@@ -124,20 +223,79 @@
     <h1>🔍 News Detector</h1>
     <p class="subtitle">Paste any news headline or article to check if it's real or fake</p>
 
-    <form method="POST">
-      <textarea name="news" placeholder="Paste your news headline or article here..." required>{{ news_input }}</textarea>
-      <button type="submit">Analyze News</button>
+    <form method="POST" id="newsForm">
+      <textarea name="news" id="newsInput" placeholder="Paste your news headline or article here..." required>{{ news_input }}</textarea>
+      <div class="char-count" id="charCount">0 characters</div>
+      <button type="submit" id="submitBtn">
+        <span id="btnText">Analyze News</span>
+        <span class="spinner" id="spinner"></span>
+      </button>
     </form>
 
     {% if result %}
-    <div class="result-box result-{{ result | lower }}">
-      <div class="badge badge-{{ result | lower }}">AI PREDICTION</div>
+    <div class="result-box {% if is_uncertain %}result-uncertain{% elif result == 'FAKE' %}result-fake{% else %}result-real{% endif %}">
+      <div class="badge {% if is_uncertain %}badge-uncertain{% elif result == 'FAKE' %}badge-fake{% else %}badge-real{% endif %}">
+        AI PREDICTION
+      </div>
       <div class="result-label">
-        {% if result == "FAKE" %}❌ FAKE NEWS{% else %}✅ REAL NEWS{% endif %}
+        {% if is_uncertain %}
+          ⚠️ UNCERTAIN
+        {% elif result == "FAKE" %}
+          ❌ FAKE NEWS
+        {% else %}
+          ✅ REAL NEWS
+        {% endif %}
       </div>
       <div class="result-confidence">Confidence: <strong>{{ confidence }}%</strong></div>
+
+      <div class="meter-track">
+        <div class="meter-fill {% if is_uncertain %}meter-uncertain{% elif result == 'FAKE' %}meter-fake{% else %}meter-real{% endif %}"
+             id="meterFill" data-target="{{ confidence }}"></div>
+      </div>
+
+      {% if keywords %}
+      <div class="keywords-label">Top words influencing this prediction</div>
+      <div class="keywords-wrap">
+        {% for kw in keywords %}
+        <span class="keyword-chip {% if kw.direction == 'FAKE' %}chip-fake{% else %}chip-real{% endif %}"
+              style="animation-delay: {{ loop.index0 * 0.08 }}s">
+          {{ kw.word }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
     {% endif %}
   </div>
+
+  <script>
+    const textarea = document.getElementById('newsInput');
+    const charCount = document.getElementById('charCount');
+    const form = document.getElementById('newsForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const spinner = document.getElementById('spinner');
+    const meterFill = document.getElementById('meterFill');
+
+    function updateCount() {
+      const len = textarea.value.length;
+      charCount.textContent = len + ' characters';
+    }
+    textarea.addEventListener('input', updateCount);
+    updateCount();
+
+    form.addEventListener('submit', function () {
+      submitBtn.disabled = true;
+      btnText.textContent = 'Analyzing...';
+      spinner.style.display = 'inline-block';
+    });
+
+    if (meterFill) {
+      const target = meterFill.getAttribute('data-target');
+      setTimeout(() => {
+        meterFill.style.width = target + '%';
+      }, 150);
+    }
+  </script>
 </body>
 </html>
